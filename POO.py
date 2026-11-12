@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -20,7 +19,6 @@ class Question:
         self.tags = tags
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convierte la instancia en un diccionario apto para YAML."""
         return {
             "title": self.title,
             "prompt": self.prompt,
@@ -28,59 +26,51 @@ class Question:
             "tags": self.tags
         }
 
-    def __repr__(self) -> str:
-        return f"Question(title='{self.title}', tags={self.tags})"
-
 
 class QuestionManager:
-    """Clase gestora para administrar, transformar y guardar el banco de preguntas."""
+    """Clase gestora para administrar, validar y fusionar el banco de preguntas."""
     
     def __init__(self, filepath: Path = PROBLEMS_PATH):
         self.filepath = filepath
-        self.questions: List[Question] = []
 
-    def load_raw_questions(self, raw_data: List[Dict[str, Any]]) -> None:
+    def sincronizar_preguntas(self, nuevas_preguntas: List[Dict[str, Any]]) -> None:
         """
-        Carga datos crudos aplicando Programación Funcional 
-        mediante `map` y expresiones `lambda`.
+        Carga las preguntas existentes y agrega de forma incremental solo las que falten 
+        (evitando duplicados), aplicando Programación Funcional (`filter`, `map`).
         """
-        self.questions = list(
-            map(
-                lambda d: Question(
-                    title=d.get("title", ""),
-                    prompt=d.get("prompt", ""),
-                    hints=d.get("hints", []),
-                    tags=d.get("tags", [])
-                ),
-                raw_data
-            )
-        )
-
-    def get_serialized_questions(self) -> List[Dict[str, Any]]:
-        """
-        Serializa la lista de objetos Question a diccionarios 
-        usando Programación Funcional (`map`).
-        """
-        return list(map(lambda q: q.to_dict(), self.questions))
-
-    def guardar_en_yaml(self) -> None:
-        """Guarda el banco completo de preguntas en el archivo YAML."""
         if yaml is None:
             raise RuntimeError("PyYAML no está instalado. Instálalo con 'pip install PyYAML'.")
         
-        data = self.get_serialized_questions()
-        with self.filepath.open("w", encoding="utf-8") as f:
-            yaml.dump(data, f, allow_unicode=True, sort_keys=False)
-        print(f"¡Éxito! Se han guardado {len(data)} preguntas en {self.filepath.name}")
+        # 1. Cargar preguntas existentes si el archivo existe
+        existentes = []
+        if self.filepath.exists():
+            with self.filepath.open("r", encoding="utf-8") as f:
+                existentes = yaml.safe_load(f) or []
+
+        # Obtener los títulos actuales usando programación funcional
+        titulos_existentes = set(map(lambda q: q.get("title"), existentes))
+
+        # 2. Filtrar únicamente las preguntas que todavía no estén en el YAML
+        preguntas_a_agregar = list(
+            filter(lambda q: q.get("title") not in titulos_existentes, nuevas_preguntas)
+        )
+
+        if preguntas_a_agregar:
+            existentes.extend(preguntas_a_agregar)
+            with self.filepath.open("w", encoding="utf-8") as f:
+                yaml.dump(existentes, f, allow_unicode=True, sort_keys=False)
+            print(f"¡Éxito! Se agregaron {len(preguntas_a_agregar)} preguntas nuevas a {self.filepath.name}.")
+        else:
+            print("El archivo YAML ya contiene todas las preguntas.")
 
 
 def cargar_preguntas() -> None:
     """
-    Función requerida para inicializar y registrar las 10 preguntas 
-    en problems.yaml utilizando POO y Programación Funcional.
+    Función requerida para registrar las preguntas en problems.yaml 
+    utilizando POO y Programación Funcional.
     """
-    # Banco con las 10 preguntas enriquecidas para Ciencia de Datos / Python Avanzado
-    datos_iniciales = [
+    # Banco completo (1 original + 10 nuevas)
+    datos_banco = [
         {
             "title": "Suma dos números",
             "prompt": "Escribe `suma(a, b)` que devuelva a + b.",
@@ -138,15 +128,19 @@ def cargar_preguntas() -> None:
         {
             "title": "Procesamiento condicional con funciones de orden superior",
             "prompt": "Escribe una función `procesar_elementos(datos)` que reciba una lista de números, multiplique por 2 los números impares y elimine los menores o iguales a 4, usando `map` y `filter`.",
-            "hints": ["Combina `filter` para la condición y `map` para la transformación", "Recuerda convertir el resultado final a una lista antes de retornarlo"],
+            "hints": ["Combina `filter` para la condición y `map` para la transformación", "Recuerda convertir el resultado final a lista antes de retornarlo"],
             "tags": ["programación-funcional", "map", "filter"]
+        },
+        {
+            "title": "Detección de valores atípicos (Outliers)",
+            "prompt": "Escribe una función `detectar_outliers(datos)` que reciba una lista numérica y devuelva aquellos elementos que se alejen más de 2 desviaciones estándar de la media.",
+            "hints": ["Calcula la media y la desviación estándar de la lista", "Filtra los valores cuyo valor absoluto de la diferencia con la media sea mayor a `2 * std`"],
+            "tags": ["estadística", "análisis-de-datos", "limpieza"]
         }
     ]
 
-    # Instanciación y ejecución del flujo orientado a objetos y funcional
     manager = QuestionManager()
-    manager.load_raw_questions(datos_iniciales)
-    manager.guardar_en_yaml()
+    manager.sincronizar_preguntas(datos_banco)
 
 
 if __name__ == "__main__":

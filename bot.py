@@ -95,7 +95,8 @@ def post_to_slack(payload: Dict):
 
 
 def cargar_preguntas():
-    raise Exception("Sorry, no hay implementación")
+    from POO import cargar_preguntas as cargar_preguntas_poo
+    return cargar_preguntas_poo()
 
 
 def main():
