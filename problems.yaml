@@ -1,0 +1,4 @@
+- title: "Suma dos números"
+  prompt: "Escribe `suma(a, b)` que devuelva a + b."
+  hints: ["Usa operadores aritméticos", "Devuelve el resultado"]
+  tags: ["funciones", "aritmética"]
