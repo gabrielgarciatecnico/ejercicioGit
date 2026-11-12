@@ -2,7 +2,7 @@
 
 ## Integrantes
 
-- Tomás Ranirez
+- Tomás Ramírez
 - Gerardo del Valle
 - Sebastian Giancaspro
 - Gabriel García
